@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Desafio 2 — Escolha da solução</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#edf1f5;color:#18212f;font-family:Arial,Helvetica,sans-serif}
+.slide{
+  width:min(1160px,95vw);margin:28px auto;background:#fff;border-radius:22px;
+  padding:34px 44px;box-shadow:0 12px 35px rgba(20,30,45,.10)
+}
+.kicker{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#667085}
+h1{font-size:29px;margin:6px 0 7px}
+.subtitle{margin:0;color:#667085;font-size:14px}
+h2{font-size:17px;margin:23px 0 11px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{border:1px solid #e2e7ed;border-radius:15px;padding:18px;background:#fbfcfd}
+.card h3{font-size:17px;margin:0 0 9px}
+.card p{font-size:13.5px;line-height:1.48;color:#566273;margin:7px 0}
+.tanhbox{display:grid;grid-template-columns:1fr .8fr;gap:16px;align-items:center}
+.graph{
+  height:205px;border:1px solid #e2e7ed;border-radius:15px;background:#fff;
+  display:flex;align-items:center;justify-content:center
+}
+.graph svg{width:100%;height:100%}
+.formula{
+  margin:10px 0;background:#18212f;color:#fff;border-radius:8px;
+  padding:10px 13px;font:13px Consolas,monospace
+}
+.results{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.metric{border:1px solid #e2e7ed;border-radius:10px;padding:11px;background:#fff}
+.metric strong{font-size:20px;display:block}
+.metric span{font-size:11px;color:#667085}
+.conclusion{
+  margin-top:15px;background:#f3f6fa;border-radius:12px;padding:13px 16px;
+  font-size:13px;line-height:1.5
+}
+@media(max-width:800px){
+ .slide{padding:26px}.grid,.tanhbox{grid-template-columns:1fr}
+ .results{grid-template-columns:1fr 1fr}
+}
+</style>
+<style>
+.version-compare{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+.version-card{
+  border:1px solid #e2e7ed;
+  border-radius:15px;
+  padding:15px;
+  background:#fbfcfd;
+}
+.version-title{
+  display:flex;
+  justify-content:space-between;
+  align-items:baseline;
+  gap:10px;
+  margin-bottom:12px;
+}
+.version-title strong{font-size:15px}
+.version-title span{font-size:11px;color:#667085}
+.version-metrics{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.version-metrics div{
+  border:1px solid #e2e7ed;
+  border-radius:9px;
+  padding:9px 10px;
+  background:#fff;
+}
+.version-metrics strong{
+  display:block;
+  font-size:18px;
+}
+.version-metrics span{
+  font-size:10.5px;
+  color:#667085;
+}
+.version-score{
+  margin-top:11px;
+  font-size:12px;
+  color:#566273;
+}
+.version-score strong{
+  font-size:16px;
+  color:#18212f;
+}
+.comparison-note{
+  margin-top:12px;
+  border-radius:12px;
+  padding:12px 15px;
+  background:#f3f6fa;
+  font-size:12.5px;
+  line-height:1.45;
+}
+.conclusion{
+  margin-top:15px;
+  background:#f3f6fa;
+  border-radius:12px;
+  padding:13px 16px;
+  font-size:13px;
+  line-height:1.5;
+}
+@media(max-width:800px){
+  .version-compare{grid-template-columns:1fr}
+}
+</style><style>
+.all-results .version-card{padding:14px}
+.all-results .version-metrics.nine{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:7px;
+}
+.all-results .version-metrics.nine div{padding:7px 8px}
+.all-results .version-metrics.nine strong{font-size:16px}
+.all-results .version-metrics.nine span{font-size:9.5px}
+@media(max-width:800px){
+  .all-results .version-metrics.nine{grid-template-columns:repeat(2,1fr)}
+}
+</style></head>
+<body>
+<main class="slide">
+<div class="kicker">Desafio 2 · Ativação e inicialização</div>
+<h1>Escolha da solução</h1>
+<p class="subtitle">
+A estratégia escolhida foi <strong>tanh + Xavier</strong>, com fator 0,50 na última camada.
+</p>
+<h2>1. Ativação: tanh</h2>
+<div class="tanhbox">
+<div class="card">
+<h3>Por que tanh?</h3>
+<p>
+      A tanh produz valores entre <strong>−1 e 1</strong> e é centrada em zero.
+    </p>
+<p>
+      Como ela satura para entradas muito positivas ou negativas, a escala das
+      pré-ativações precisa ser controlada.
+    </p>
+</div>
+<div class="graph">
+<svg aria-label="Função tangente hiperbólica" role="img" viewbox="0 0 390 205">
+<line stroke="#b8c0cc" stroke-width="1.4" x1="42" x2="360" y1="102" y2="102"></line>
+<line stroke="#b8c0cc" stroke-width="1.4" x1="195" x2="195" y1="20" y2="185"></line>
+<text fill="#667085" font-size="12" x="350" y="119">x</text>
+<text fill="#667085" font-size="12" x="201" y="29">y</text>
+<text fill="#667085" font-size="11" x="17" y="39">1</text>
+<text fill="#667085" font-size="11" x="12" y="177">−1</text>
+<path d="M43 177 C100 176,130 166,158 143 C180 125,190 111,195 102
+               C200 93,210 79,232 61 C260 38,290 28,359 27" fill="none" stroke="#18212f" stroke-linecap="round" stroke-width="3.5"></path>
+<text fill="#667085" font-size="11" x="52" y="157">saturação</text>
+<text fill="#667085" font-size="11" x="276" y="47">saturação</text>
+</svg>
+</div>
+</div>
+<h2>2. Inicialização: Xavier</h2>
+<div class="grid">
+<div class="card">
+<h3>Ideia</h3>
+<p>
+      Xavier define a escala inicial dos pesos usando <strong>fan_in</strong> e
+      <strong>fan_out</strong>. A escolha é compatível com a necessidade de controlar a escala
+      das pré-ativações antes da tanh.
+    </p>
+<div class="formula">std = √(2 / (fan_in + fan_out))</div>
+</div>
+<div class="card">
+<h3>Ajuste da última camada</h3>
+<p>
+      Na última camada, foi aplicado um fator adicional de <strong>0,50</strong>.
+    </p>
+<div class="formula">std_última = 0,50 × std_Xavier</div>
+<p>
+      Com isso, a escala inicial dos pesos da última camada é reduzida. Essa camada produz os logits e não recebe a tanh.
+    </p>
+</div>
+</div>
+<h2>3. Evidência nos resultados</h2>
+<div class="version-compare all-results">
+<div class="version-card">
+<div class="version-title">
+<strong>Python 3.13.11</strong>
+<span>torch 2.14.0+cpu</span>
+</div>
+<div class="version-metrics nine">
+<div><strong>0,965</strong><span>MNIST L4</span></div>
+<div><strong>0,960</strong><span>MNIST L16</span></div>
+<div><strong>0,208</strong><span>MNIST L48</span></div>
+<div><strong>0,873</strong><span>Fashion L4</span></div>
+<div><strong>0,857</strong><span>Fashion L16</span></div>
+<div><strong>0,198</strong><span>Fashion L48</span></div>
+<div><strong>0,434</strong><span>CIFAR-10 L4</span></div>
+<div><strong>0,415</strong><span>CIFAR-10 L16</span></div>
+<div><strong>0,147</strong><span>CIFAR-10 L48</span></div>
+</div>
+<div class="version-score">Escore S <strong>70,7</strong></div>
+</div>
+<div class="version-card">
+<div class="version-title">
+<strong>Python 3.14.7</strong>
+<span>torch 2.14.0+cpu</span>
+</div>
+<div class="version-metrics nine">
+<div><strong>0,965</strong><span>MNIST L4</span></div>
+<div><strong>0,959</strong><span>MNIST L16</span></div>
+<div><strong>0,201</strong><span>MNIST L48</span></div>
+<div><strong>0,873</strong><span>Fashion L4</span></div>
+<div><strong>0,859</strong><span>Fashion L16</span></div>
+<div><strong>0,198</strong><span>Fashion L48</span></div>
+<div><strong>0,434</strong><span>CIFAR-10 L4</span></div>
+<div><strong>0,413</strong><span>CIFAR-10 L16</span></div>
+<div><strong>0,151</strong><span>CIFAR-10 L48</span></div>
+</div>
+<div class="version-score">Escore S <strong>64,6</strong></div>
+</div>
+</div>
+<div class="comparison-note">
+<strong>Comparação:</strong>
+  as nove acurácias mostram resultados muito próximos entre as duas execuções,
+  com pequenas variações entre as versões do Python. O <strong>escore S</strong>,
+  que considera as 9 tarefas públicas, foi 70,7 no Python 3.13.11 e 64,6 no Python 3.14.7.
+</div>
+<div class="conclusion">
+<strong>O que os resultados mostram:</strong>
+  em L4 e L16, a combinação apresenta bom desempenho. Em L48, porém,
+  a variância da pré-ativação diminui fortemente ao longo da rede
+  (MNIST: <strong>1,6 → 0,023 → 0,0054</strong>), acompanhada pela redução
+  das normas dos gradientes. A estratégia, portanto, controla a escala inicialmente,
+  mas não impede a atenuação do sinal em redes muito profundas.
+</div>
+
+
+
+
+</main>
+</body>
+</html>
