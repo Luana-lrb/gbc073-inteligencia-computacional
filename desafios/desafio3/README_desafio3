@@ -1,0 +1,186 @@
+# Desafio 3 — Segmentação de áreas verdes (LoveDA)
+
+**GBC073 — Inteligência Computacional | FACOM/UFU**
+
+Este projeto investiga o efeito de **otimizadores e agendas de taxa de aprendizado** no treinamento de uma U-Net para segmentação binária de vegetação em imagens de satélite do LoveDA. A classe positiva reúne os rótulos **6 (floresta) e 7 (agricultura)**; as demais classes são consideradas não vegetação.
+
+O modelo utiliza `segmentation_models_pytorch`, arquitetura U-Net, encoder **ResNet34 sem pesos pré-treinados**, imagens de 256 × 256 pixels e loss `BCEWithLogitsLoss + DiceLoss`. Cada chamada de `treino.py` executa **um experimento**, definido por otimizador, learning rate, agenda e semente.
+
+## Arquivos para a entrega
+
+```text
+desafio3/
+├── treino.py                 # Treinamento configurável
+├── README.md                 # Instruções e descrição dos resultados
+├── experimentos.csv          # Histórico consolidado das 46 execuções
+├── painel.pdf                # Painel comparativo com sinais de treinamento
+├── slide.pdf                 # Slide de apresentação
+├── split_fixo.json           # Divisão de dados usada no treinamento
+└── logs/
+    ├── *_signals.csv         # Sinais amostrados durante o treino
+    └── *_epochs.csv          # Loss e métricas por época
+```
+
+Os arquivos `.pt` (pesos dos melhores checkpoints) são gerados pelo script, mas não são necessários para visualizar os gráficos e podem ser armazenados fora do repositório devido ao tamanho. Os cinco CSVs intermediários (`baseline.csv`, `lr_sweep.csv`, `schedule_sweep.csv`, `confirmation.csv`, `final_test.csv`) também podem ser mantidos para auditoria dos resultados.
+
+## Requisitos
+
+- Python 3.10 ou superior;
+- `torch`, `segmentation-models-pytorch`, `numpy`, `pandas`, `scikit-learn`, `pillow`;
+- GPU com CUDA recomendada para executar os treinamentos.
+
+Exemplo de instalação das dependências Python:
+
+```bash
+pip install torch segmentation-models-pytorch numpy pandas scikit-learn pillow
+```
+
+Para usar CUDA, instale uma versão de PyTorch compatível com seu ambiente e driver.
+
+**Estrutura esperada do LoveDA:**
+
+```text
+LoveDA/
+├── Train/
+│   └── Urban/
+│       ├── images_png/
+│       └── masks_png/
+└── Val/
+    └── Urban/
+        ├── images_png/
+        └── masks_png/
+```
+
+O script reúne imagens rotuladas das partições `Train/Urban` e `Val/Urban`, remove duplicatas por hash e usa uma divisão fixa de **70% treino, 15% validação e 15% teste** (semente 42). O conjunto `Test` original do LoveDA não é utilizado, pois não dispõe das máscaras necessárias para avaliação.
+
+> **Reprodutibilidade:** utilize o `split_fixo.json` entregue. Ele guarda **caminhos absolutos do ambiente em que os experimentos foram feitos**. Para reproduzir exatamente a divisão original, disponibilize as imagens nos mesmos caminhos (por exemplo, no Colab, `/content/drive/MyDrive/LoveDA`). Se o arquivo não existir na pasta de resultados, o script cria uma nova divisão; isso não garante reproduzir a mesma seleção de amostras em outro ambiente.
+
+## Uso do script
+
+```bash
+python treino.py --optimizer OTIMIZADOR --lr LR [opções]
+```
+
+Os argumentos `--optimizer` e `--lr` são obrigatórios. Para consultar todas as opções:
+
+```bash
+python treino.py --help
+```
+
+| Argumento | Valores / comportamento | Padrão |
+|---|---|---|
+| `--optimizer` | `SGD`, `SGD_Nesterov`, `Adam`, `AdamW`, `Muon` | obrigatório |
+| `--lr` | Taxa positiva; nos agendamentos com pico, LR de referência/máximo | obrigatório |
+| `--schedule` | `constant`, `cosine`, `warmup_cosine`, `one_cycle` | `warmup_cosine` |
+| `--seed` | Semente do experimento (42, 94 e 168 no protocolo) | `42` |
+| `--epochs` | Quantidade de épocas | `15` |
+| `--stage` | Etapa registrada no CSV e nos nomes dos logs | `manual` |
+| `--adamw-lr` | LR do AdamW auxiliar na configuração híbrida Muon | `0.0001` |
+| `--dataset-dir` | Caminho da pasta `LoveDA` | `LoveDA` ao lado do script |
+| `--output-dir` | Caminho de saída | `desafio3_resultados` ao lado do script |
+| `--num-workers` | Número de processos do DataLoader | `0` no Windows; `2` em outros sistemas |
+| `--evaluate-test` | Avalia o melhor checkpoint no teste; apenas com `--stage final_test` | desligado |
+| `--overwrite` | Permite substituir uma configuração já registrada | desligado |
+
+**Parâmetros fixos no código:** `IMAGE_SIZE=256`, `BATCH_SIZE=8`, `GREEN_LABELS=[6,7]`, encoder `resnet34`, `LOG_EVERY_STEPS=20`, `MAX_GRAD_NORM=None` (sem clipping), pesos pré-treinados desativados.
+
+### Exemplos de reprodução
+
+Os comandos abaixo pressupõem que o dataset e a divisão fixa estejam acessíveis nos caminhos configurados. Ajuste `--dataset-dir` e `--output-dir` para o seu ambiente.
+
+**Teste rápido** — não integra os resultados oficiais; usar uma pasta de saída separada:
+
+```bash
+python treino.py --optimizer AdamW --lr 0.0001 --schedule warmup_cosine --seed 42 --epochs 1 --stage smoke_test --output-dir desafio3_teste_script
+```
+
+**Baseline** — repetir com sementes 42, 94 e 168:
+
+```bash
+python treino.py --optimizer AdamW --lr 0.0001 --schedule warmup_cosine --seed 42 --epochs 15 --stage baseline
+```
+
+**Varredura de LR** — cinco taxas por otimizador; uma semente e cinco épocas:
+
+```bash
+python treino.py --optimizer AdamW --lr 0.0003 --schedule warmup_cosine --seed 42 --epochs 5 --stage lr_sweep
+```
+
+**Comparação de agendas** — configuração exemplificada do Muon:
+
+```bash
+python treino.py --optimizer Muon --lr 0.003 --adamw-lr 0.0001 --schedule one_cycle --seed 42 --epochs 5 --stage schedule_sweep
+```
+
+**Confirmação** — repetir a combinação para sementes 42, 94 e 168, com 15 épocas:
+
+```bash
+python treino.py --optimizer Muon --lr 0.003 --adamw-lr 0.0001 --schedule one_cycle --seed 94 --epochs 15 --stage confirmation
+```
+
+**Avaliação final** — somente após a escolha pela validação:
+
+```bash
+python treino.py --optimizer Muon --lr 0.003 --adamw-lr 0.0001 --schedule one_cycle --seed 42 --epochs 15 --stage final_test --evaluate-test
+```
+
+No Colab, utilize `!python treino.py ...` em uma célula de código e informe, quando necessário, os caminhos absolutos para o LoveDA e os resultados.
+
+**Atenção:** o script impede, por padrão, repetir uma combinação já existente na mesma pasta de saída. Para testes ou reprodução sem modificar os resultados entregues, **prefira outro `--output-dir`**. `--overwrite` só deve ser usado quando a substituição for intencional.
+
+## Protocolo experimental
+
+1. **Baseline:** AdamW, LR 0,0001, warmup + cosseno, 15 épocas, três sementes.
+2. **Varredura de learning rate:** cinco LRs por otimizador (SGD com momento, SGD + Nesterov, Adam, AdamW e Muon), warmup + cosseno, 5 épocas, semente 42.
+3. **Comparação de agendas:** para AdamW e Muon, com seus LRs selecionados, agendas constante, cosseno, warmup + cosseno e OneCycle, 5 épocas, semente 42.
+4. **Confirmação:** três melhores combinações selecionadas, 15 épocas e três sementes (42, 94, 168).
+5. **Teste final:** uma avaliação da configuração vencedora, selecionada exclusivamente pela validação.
+
+O tamanho do lote foi mantido em 8; o orçamento de treinamento das varreduras e da comparação de agendas foi mantido em cinco épocas por configuração, enquanto baseline e confirmação usaram 15 épocas. As 46 execuções foram registradas, inclusive aquelas com desempenho inferior.
+
+## Resultados
+
+A seleção foi feita pelo **Dice de validação**, comparando a média e o desvio-padrão amostral entre sementes.
+
+| Configuração | Dice médio de validação (3 sementes) |
+|---|---:|
+| Baseline — AdamW, LR 0,0001, warmup + cosseno | 0,7267 ± 0,0058 |
+| Muon, LR 0,003, cosseno | 0,7448 ± 0,0015 |
+| Muon, LR 0,003, warmup + cosseno | 0,7456 ± 0,0026 |
+| **Muon, LR 0,003, OneCycle** | **0,7510 ± 0,0017** |
+
+- **Ganho médio da vencedora sobre a baseline:** `+0,0243` Dice (aproximadamente 2,43 pontos percentuais de Dice).
+- **Ganho pareado nas mesmas três sementes:** `+0,0243 ± 0,0042` Dice.
+- **Teste final da vencedora:** Dice `0,7650` na execução de semente 42 (não usado na escolha da configuração).
+- **Total:** 46 execuções; nenhuma registrada com `diverged=True`.
+
+O arquivo `painel.pdf` mostra a métrica × LR por otimizador, a comparação das agendas, a variabilidade entre sementes e os sinais de treinamento (perda, norma dos gradientes, norma dos parâmetros, razão de atualização e LR). A comparação inclui baseline, vencedora, Muon × AdamW e constante × OneCycle. Como não houve divergência registrada, o painel apresenta explicitamente um **controle de baixo Dice não divergente**, sem classificá-lo incorretamente como instável.
+
+### Interpretação e limitações
+
+A configuração **Muon + OneCycle** obteve maior Dice médio de validação e menor desvio-padrão entre as três sementes do que a baseline. O painel permite relacionar esse resultado às curvas de perda, aos gradientes, às normas dos parâmetros e à evolução da razão de atualização. Em especial, a agenda OneCycle aumenta a taxa inicialmente e a reduz ao fim do treinamento, acompanhando a diminuição das atualizações finais.
+
+**Limitação de protocolo:** nos experimentos executados, a parte AdamW auxiliar do Muon utilizou LR `0,0001`. A varredura posterior identificou `0,0003` como melhor LR do AdamW. O protocolo do professor recomenda usar o melhor LR do AdamW nessa parte híbrida; a diferença foi **registrada e não corrigida retroativamente**, para manter fidelidade aos experimentos realizados.
+
+A varredura comparou somente cinco épocas por configuração e a comparação detalhada foi conduzida com semente 42 antes da confirmação com três sementes. O teste foi reservado à avaliação final.
+
+## Arquivos de saída e instrumentação
+
+Cada execução gera registros na pasta especificada em `--output-dir`:
+
+| Arquivo | Conteúdo |
+|---|---|
+| `<stage>.csv` | Uma linha por configuração/semente, Dice de validação, indicador de divergência, tempo e metadados |
+| `experimentos.csv` | Consolidação automática dos CSVs das etapas oficiais |
+| `split_fixo.json` | Divisão de treino, validação e teste |
+| `logs/<run_id>_signals.csv` | Perda por lote amostrado, norma global e por camada dos gradientes e parâmetros, razão de atualização e LR |
+| `logs/<run_id>_epochs.csv` | Loss de treino, loss de validação, Dice e IoU por época |
+| `logs/<run_id>_best.pt` | Checkpoint de maior Dice de validação |
+
+Os sinais são registrados a cada **20 passos** (e no final de cada época); a norma dos gradientes é calculada **antes de qualquer clipping**. As camadas monitoradas são a primeira, uma intermediária e a última camada selecionada antes da cabeça de segmentação. Para Muon, são registrados o LR principal e o LR auxiliar.
+
+O identificador da execução (`run_id`) segue a forma `<stage>_<optimizer>_lr<lr>_<schedule>_seed<seed>`, substituindo `.` por `p`, por exemplo `baseline_AdamW_lr0p0001_warmup_cosine_seed42`.
+
+Para reproduzir **uma linha específica de `experimentos.csv`**, use seus campos `optimizer`, `lr`, `schedule`, `seed`, `epochs_requested` e `stage` como parâmetros do comando; para Muon, inclua também `--adamw-lr` conforme a coluna `adamw_lr`. Utilize o mesmo dataset e o arquivo `split_fixo.json` original.
+
+O `painel.pdf` e o `slide.pdf` documentam, respectivamente, a análise completa dos sinais e a síntese para a apresentação.
