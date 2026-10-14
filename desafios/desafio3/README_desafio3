@@ -11,7 +11,7 @@ O modelo utiliza `segmentation_models_pytorch`, arquitetura U-Net, encoder **Res
 ```text
 desafio3/
 ├── treino.py                 # Treinamento configurável
-├── README.md                 # Instruções e descrição dos resultados
+├── README_desafio3.md        # Instruções e descrição dos resultados
 ├── experimentos.csv          # Histórico consolidado das 46 execuções
 ├── painel.pdf                # Painel comparativo com sinais de treinamento
 ├── slide.pdf                 # Slide de apresentação
